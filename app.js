@@ -284,7 +284,17 @@ const SCOPES = 'user-top-read user-read-private user-library-read';
 const STORAGE_KEY      = 'distortion_client_id';
 const REDIRECT_URI_KEY = 'distortion_redirect_uri';
 const TOKEN_KEY        = 'distortion_token';
-const VERIFIER_KEY     = 'distortion_verifier';
+const VERIFIER_KEY            = 'distortion_verifier';
+const DISCOGS_ARTIST_CACHE_KEY = 'distortion_discogs_artists'; // { artistNameLower: string[] }
+const DISCOGS_TRACK_CACHE_KEY  = 'distortion_discogs_tracks';  // { "artist|title": string[] }
+
+function loadDiscogsCache(key) {
+  try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; }
+}
+function saveDiscogsCache(key, data) {
+  try { localStorage.setItem(key, JSON.stringify(data)); }
+  catch (e) { console.warn('Discogs cache write error:', e.message); }
+}
 
 // ── PKCE helpers ───────────────────────────────────────────────────────
 function randomString(len) {
@@ -579,17 +589,44 @@ class App {
     const toSearch = this.likedTracks.slice(0, 25);
     if (!toSearch.length) return tagSet;
 
+    const cache = loadDiscogsCache(DISCOGS_TRACK_CACHE_KEY);
+    // Canciones que aún no tienen entrada en caché → hay que buscarlas en Discogs
+    const uncached = toSearch.filter(({ artist, title }) =>
+      cache[`${artist.toLowerCase()}|${title.toLowerCase()}`] === undefined
+    );
+    const totalNew = uncached.length;
+    let fetchCount = 0;
+    let cacheUpdated = false;
+
     for (let i = 0; i < toSearch.length; i++) {
       const { artist, title } = toSearch[i];
-      const rawTags = await this.fetchDiscogsTagsForTrack(artist, title);
+      const cacheKey = `${artist.toLowerCase()}|${title.toLowerCase()}`;
+
+      let rawTags;
+      if (cache[cacheKey] !== undefined) {
+        rawTags = cache[cacheKey]; // hit — sin llamada a API
+      } else {
+        // Rate-limit sólo entre llamadas reales
+        if (fetchCount > 0) await sleep(2500);
+        rawTags = await this.fetchDiscogsTagsForTrack(artist, title);
+        cache[cacheKey] = rawTags;
+        cacheUpdated = true;
+        fetchCount++;
+      }
+
       for (const raw of rawTags) {
         const label = this.genreToTag(raw);
         if (label) tagSet.add(label);
       }
+
       const pct = 43 + Math.round(((i + 1) / toSearch.length) * 10);
-      this.showLoading(`Etiquetando canciones con Discogs… ${i + 1}/${toSearch.length}`, pct);
-      if (i < toSearch.length - 1) await sleep(2500);
+      const msg = totalNew === 0
+        ? `Canciones cargadas desde caché (${toSearch.length})`
+        : `Discogs: ${fetchCount}/${totalNew} canciones nuevas…`;
+      this.showLoading(msg, pct);
     }
+
+    if (cacheUpdated) saveDiscogsCache(DISCOGS_TRACK_CACHE_KEY, cache);
     return tagSet;
   }
 
@@ -715,15 +752,35 @@ class App {
   // We only call Discogs for artists whose Spotify tags gave genreScore < 0.15.
   // Rate: 1 call / 2.5s to stay under Discogs anonymous limit (25 req/min).
   async enrichWithDiscogs(results) {
+    const cache = loadDiscogsCache(DISCOGS_ARTIST_CACHE_KEY);
     const toEnrich = results.filter(r => r.found && r.genreScore < 0.15);
+
+    // Artistas que aún no están en caché
+    const uncached = toEnrich.filter(r =>
+      cache[r.name.replace(/ b2b .+/i, '').trim().toLowerCase()] === undefined
+    );
+    const totalNew = uncached.length;
+    let fetchCount = 0;
+    let cacheUpdated = false;
+
     for (let i = 0; i < toEnrich.length; i++) {
       const r = toEnrich[i];
       const searchName = r.name.replace(/ b2b .+/i, '').trim();
-      const dStyles = await this.fetchDiscogsStyles(searchName);
+      const cacheKey = searchName.toLowerCase();
+
+      let dStyles;
+      if (cache[cacheKey] !== undefined) {
+        dStyles = cache[cacheKey]; // hit — sin llamada a API
+      } else {
+        if (fetchCount > 0) await sleep(2500); // rate-limit sólo entre llamadas reales
+        dStyles = await this.fetchDiscogsStyles(searchName);
+        cache[cacheKey] = dStyles;
+        cacheUpdated = true;
+        fetchCount++;
+      }
+
       if (dStyles.length) {
-        // Merge Discogs styles into allGenres (lowercase, deduplicated)
-        const merged = [...new Set([...r.allGenres,
-          ...dStyles.map(s => s.toLowerCase())])];
+        const merged = [...new Set([...r.allGenres, ...dStyles.map(s => s.toLowerCase())])];
         r.allGenres    = merged;
         r.discogsStyles = dStyles;
         r.styleTags    = this.genresToStyleTags(merged, r.name);
@@ -733,10 +790,15 @@ class App {
           this.savedStyleTagSet?.has(this.genreToTag(g))
         );
       }
+
       const pct = 75 + Math.round((i / toEnrich.length) * 5);
-      this.showLoading(`Consultando Discogs… ${i + 1}/${toEnrich.length}`, pct);
-      if (i < toEnrich.length - 1) await sleep(2500);
+      const msg = totalNew === 0
+        ? `Tags de artistas cargados desde caché`
+        : `Discogs: ${fetchCount}/${totalNew} artistas nuevos…`;
+      this.showLoading(msg, pct);
     }
+
+    if (cacheUpdated) saveDiscogsCache(DISCOGS_ARTIST_CACHE_KEY, cache);
   }
 
   async fetchDiscogsStyles(artistName) {
