@@ -41,6 +41,52 @@ const LINEUP_DAYS = {
   "Whrikk": "saturday", "steamboi": "saturday", "Tadoh": "saturday",
 };
 
+// ── Horarios por día (time, stage, note) ─────────────────────────────
+const SCHEDULE = {
+  friday: [
+    { time: "18:00", stage: "Forest",          artist: "Ana Karla",                  note: "" },
+    { time: "19:00", stage: "Rave Teletech",   artist: "Schacke",                    note: "" },
+    { time: "19:00", stage: "Sunrise",         artist: "Rexie Lex",                  note: "" },
+    { time: "20:00", stage: "Forest",          artist: "¡Harty!",                    note: "" },
+    { time: "20:00", stage: "Oasis",           artist: "RO",                         note: "" },
+    { time: "21:00", stage: "Rave Teletech",   artist: "Fumi",                       note: "Sunset" },
+    { time: "21:00", stage: "Sunrise",         artist: "Cornelius",                  note: "Sunset" },
+    { time: "21:00", stage: "Shadow Arcanum",  artist: "Freya Rose",                 note: "Sunset" },
+    { time: "22:00", stage: "Forest",          artist: "WhoMadeWho",                 note: "Hybrid DJ Set" },
+    { time: "22:00", stage: "Oasis",           artist: "Isabella",                   note: "" },
+    { time: "22:00", stage: "Shadow Arcanum",  artist: "Lulla-Li",                   note: "" },
+    { time: "23:00", stage: "Rave Teletech",   artist: "Anetha",                     note: "" },
+    { time: "23:00", stage: "Sunrise",         artist: "Minimalene",                 note: "" },
+    { time: "23:00", stage: "Shadow Arcanum",  artist: "Mental Projection",          note: "Live" },
+    { time: "00:00", stage: "Forest",          artist: "Carlita",                    note: "" },
+    { time: "00:00", stage: "Oasis",           artist: "Kevin Saunderson",           note: "" },
+    { time: "01:00", stage: "Forest",          artist: "Eloq",                       note: "" },
+    { time: "01:00", stage: "Rave Teletech",   artist: "Sara Landry",                note: "" },
+    { time: "01:00", stage: "Oasis",           artist: "Prom Night & Harrison Heat", note: "" },
+    { time: "01:00", stage: "Sunrise",         artist: "Gross & Artig",              note: "" },
+    { time: "01:00", stage: "Shadow Arcanum",  artist: "Shenanigan",                 note: "Live" },
+    { time: "03:00", stage: "Forest",          artist: "Interplanetary Criminal",    note: "" },
+    { time: "03:00", stage: "Rave Teletech",   artist: "Trym",                       note: "" },
+    { time: "03:00", stage: "Sunrise",         artist: "Just Emma",                  note: "" },
+    { time: "03:00", stage: "Shadow Arcanum",  artist: "Oxyflux",                    note: "Live" },
+  ],
+  saturday: [
+    // TODO: agregar horarios del sábado
+  ],
+};
+
+// Lookup: nombre en minúsculas → entrada de horario
+const ARTIST_SCHEDULE = new Map();
+for (const acts of Object.values(SCHEDULE))
+  for (const act of acts)
+    ARTIST_SCHEDULE.set(act.artist.toLowerCase(), act);
+
+// Convierte "HH:MM" a minutos para ordenar cruzando medianoche
+function scheduleTimeToSort(time) {
+  const [h, m] = time.split(':').map(Number);
+  return (h < 7 ? h + 24 : h) * 60 + (m || 0);
+}
+
 // ── Imágenes locales (descargadas de cphdistortion.dk) ───────────────
 const LINEUP_IMAGES = {
   "Anetha":                    "./images/anetha.jpg",
@@ -558,6 +604,7 @@ class App {
         popularity:  artist.popularity,
         followers:   artist.followers?.total ?? 0,
         day:         LINEUP_DAYS[name] || null,
+        schedule:    ARTIST_SCHEDULE.get(name.toLowerCase()) || null,
         finalScore:  genreScore, // placeholder
       };
     } catch (err) {
@@ -575,6 +622,7 @@ class App {
       styleTags: this.genresToStyleTags([], name),
       followers: 0, popularity: 0,
       day: LINEUP_DAYS[name] || null,
+      schedule: ARTIST_SCHEDULE.get(name.toLowerCase()) || null,
       image: image || LINEUP_IMAGES[name] || null };
   }
 
@@ -851,6 +899,16 @@ class App {
     const dayLabel = artist.day === 'friday' ? 'Vie 5/6' : artist.day === 'saturday' ? 'Sáb 6/6' : null;
     const dayBadge = dayLabel ? `<div class="badge-day badge-day--${artist.day}">${dayLabel}</div>` : '';
 
+    // Schedule badge
+    const schedHtml = artist.schedule
+      ? `<div class="badge-schedule">
+           <span class="sched-time">${esc(artist.schedule.time)}</span>
+           <span class="sched-sep">·</span>
+           <span class="sched-stage">${esc(artist.schedule.stage)}</span>
+           ${artist.schedule.note ? `<span class="sched-note">${esc(artist.schedule.note)}</span>` : ''}
+         </div>`
+      : '';
+
     // Style tags (top of card body)
     const styleTagsHtml = artist.styleTags.length
       ? `<div class="style-tags">${artist.styleTags.map(t =>
@@ -920,6 +978,7 @@ class App {
       <div class="card-img-wrap">${imgHtml}</div>
       <div class="card-body">
         <div><div class="card-name">${esc(artist.name)}</div>${nameNote}</div>
+        ${schedHtml}
         ${styleTagsHtml}
         ${scoreSection}
         <div class="card-footer">${footer}</div>
@@ -940,7 +999,7 @@ class App {
   // ── Filters ───────────────────────────────────────────────────────────
   applyFilter(filter) {
     const query = (document.getElementById('artist-search')?.value || '').trim().toLowerCase();
-    const filtered = (this.allRankings || []).filter(a => {
+    let filtered = (this.allRankings || []).filter(a => {
       const pct = Math.round(a.finalScore * 100);
       if (filter === 'listened') { if (!a.isDirectListen) return false; }
       else if (filter === 'discover') { if (a.isDirectListen || pct < 25) return false; }
@@ -950,6 +1009,14 @@ class App {
       if (query) return a.name.toLowerCase().includes(query);
       return true;
     });
+    // Ordenar por hora si el filtro es "schedule"
+    if (filter === 'schedule') {
+      filtered = [...filtered].sort((a, b) => {
+        const ta = a.schedule ? scheduleTimeToSort(a.schedule.time) : Infinity;
+        const tb = b.schedule ? scheduleTimeToSort(b.schedule.time) : Infinity;
+        return ta - tb;
+      });
+    }
     this.renderCards(filtered);
     this.animateBars();
   }
