@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.cphdistortion.dk)",
+      "Bash(curl -s -o anetha.jpg \"https://www.cphdistortion.dk/media/images/content/10/pv_ye6ztemd/anetha.jpg.jpg\")",
+      "Bash(curl -s -o carlita.jpg \"https://www.cphdistortion.dk/media/images/content/15/pv_ye6ztemd/carlita.jpg.jpg\")",
+      "Bash(curl -s -o charlie-sparks.jpg \"https://www.cphdistortion.dk/media/images/content/17/pv_ye6ztemd/charlie-sparks.jpg.jpg\")",
+      "Bash(curl -s -o interplanetary-criminal.jpg \"https://www.cphdistortion.dk/media/images/content/31/pv_ye6ztemd/interplanetary-criminal.jpg.jpg\")",
+      "Bash(curl -s -o kevin-saunderson.jpg \"https://www.cphdistortion.dk/media/images/content/35/pv_ye6ztemd/kevin-saunderson.jpg.jpg\")",
+      "Bash(curl -s -o trym.jpg \"https://www.cphdistortion.dk/media/images/content/118/pv_ye6ztemd/trym-presskit26-5.jpg.jpg\")",
+      "Bash(curl -s -o whomadewho.jpg \"https://www.cphdistortion.dk/media/images/content/65/pv_ye6ztemd/whomadewho.jpg.jpg\")",
+      "Bash(curl -s -o oetta.jpg \"https://www.cphdistortion.dk/media/images/content/44/pv_ye6ztemd/oetta.jpg.jpg\")",
+      "Bash(curl -s -o chomba.jpg \"https://www.cphdistortion.dk/media/images/content/18/pv_ye6ztemd/chomba.jpg.jpg\")",
+      "Bash(curl -s -o eloq.jpg \"https://www.cphdistortion.dk/media/images/content/21/pv_ye6ztemd/eloq.jpg.jpg\")",
+      "Bash(curl -s -o schacke.jpg \"https://www.cphdistortion.dk/media/images/content/53/pv_ye6ztemd/schacke.jpg.jpg\")",
+      "Bash(curl -s -o thelma.jpg \"https://www.cphdistortion.dk/media/images/content/62/pv_ye6ztemd/thelma.jpg.jpg\")",
+      "Bash(curl -s -o ueberrest.jpg \"https://www.cphdistortion.dk/media/images/content/63/pv_ye6ztemd/ueberrest.jpg.jpg\")",
+      "Bash(curl -s -o ana-karla.jpg \"https://www.cphdistortion.dk/media/images/content/9/pv_ye6ztemd/ana-karla.jpg.jpg\")",
+      "Bash(curl -s -o b-from-e.jpg \"https://www.cphdistortion.dk/media/images/content/11/pv_ye6ztemd/b-from-e.jpg.jpg\")",
+      "Bash(curl -s -o filthy-b2b-jeroen.jpg \"https://www.cphdistortion.dk/media/images/content/24/pv_ye6ztemd/filth-y-b2b-jeroen.jpg.jpg\")",
+      "Bash(curl -s -o freya-rose.jpg \"https://www.cphdistortion.dk/media/images/content/25/pv_ye6ztemd/freya-rose.jpg.jpg\")",
+      "Bash(curl -s -o froelaar-b2b-signe.jpg \"https://www.cphdistortion.dk/media/images/content/26/pv_ye6ztemd/froelaar-b2b-signe-alarcon.jpg.jpg\")",
+      "Bash(curl -s -o gross-and-artig.jpg \"https://www.cphdistortion.dk/media/images/content/29/pv_ye6ztemd/gross-and-artig.jpg.jpg\")",
+      "Bash(curl -s -o prom-night-harrison-heat.jpg \"https://www.cphdistortion.dk/media/images/content/28/pv_ye6ztemd/harrison-heat-vs-shaq.jpg.jpg\")",
+      "Bash(curl -s -o professor-trelawney.jpg \"https://www.cphdistortion.dk/media/images/content/48/pv_ye6ztemd/proffessor-trelawney.jpg.jpg\")",
+      "Bash(curl -s -o rexie-lex.jpg \"https://www.cphdistortion.dk/media/images/content/49/pv_ye6ztemd/rexie-lex.jpg.jpg\")",
+      "Bash(curl -s -o ro.jpg \"https://www.cphdistortion.dk/media/images/content/50/pv_ye6ztemd/ro.jpg.jpg\")",
+      "Bash(curl -s -o seahorse.jpg \"https://www.cphdistortion.dk/media/images/content/54/pv_ye6ztemd/seahorse.jpg.jpg\")",
+      "Bash(curl -s -o shenanigan.jpg \"https://www.cphdistortion.dk/media/images/content/55/pv_ye6ztemd/shenanigan.jpg.jpg\")",
+      "Bash(curl -v -L --max-redirs 10 -H \"Referer: https://www.cphdistortion.dk/\" -H \"User-Agent: Mozilla/5.0\" \"https://www.cphdistortion.dk/media/images/content/10/pv_ye6ztemd/anetha.jpg.jpg\" -o \"C:\\\\Users\\\\germa\\\\OneDrive\\\\Escritorio\\\\Distorsion checker\\\\images\\\\anetha.jpg\")",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(curl -s -L --max-redirs 10 -H 'User-Agent: Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/125.0.0.0 Safari/537.36' -H 'Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8' -H 'Accept-Language: en-US,en;q=0.9' -H 'Referer: https://www.cphdistortion.dk/lineup-distortion-oe' -H 'sec-fetch-dest: image' -H 'sec-fetch-mode: no-cors' -H 'sec-fetch-site: same-origin' -o 'C:\\\\Users\\\\germa\\\\OneDrive\\\\Escritorio\\\\Distorsion checker\\\\images\\\\anetha.jpg' -w '%{http_code} %{size_download}' https://www.cphdistortion.dk/media/images/content/10/pv_ye6ztemd/anetha.jpg.jpg)",
+      "Bash(git --version)"
+    ]
+  }
+}
