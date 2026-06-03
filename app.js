@@ -260,6 +260,9 @@ class App {
         this.applyFilter(btn.dataset.filter);
       };
     });
+    $('artist-search').oninput = () => this.applyFilter(
+      document.querySelector('.filter-btn.active')?.dataset.filter || 'all'
+    );
   }
 
   // ── Auth ──────────────────────────────────────────────────────────────
@@ -364,7 +367,8 @@ class App {
       for (const a of rankings) a.finalScore = this.computeFinalScore(a);
       rankings.sort((a, b) => {
         if (a.isDirectListen !== b.isDirectListen) return a.isDirectListen ? -1 : 1;
-        return b.finalScore - a.finalScore;
+        if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
+        return b.name.localeCompare(a.name, 'es', { sensitivity: 'base' });
       });
 
       this.showLoading('Preparando tu ranking…', 97);
@@ -935,13 +939,15 @@ class App {
 
   // ── Filters ───────────────────────────────────────────────────────────
   applyFilter(filter) {
+    const query = (document.getElementById('artist-search')?.value || '').trim().toLowerCase();
     const filtered = (this.allRankings || []).filter(a => {
       const pct = Math.round(a.finalScore * 100);
-      if (filter === 'listened') return a.isDirectListen;
-      if (filter === 'discover') return !a.isDirectListen && pct >= 25;
-      if (filter === 'low')      return !a.isDirectListen && pct < 25;
-      if (filter === 'friday')   return a.day === 'friday';
-      if (filter === 'saturday') return a.day === 'saturday';
+      if (filter === 'listened') { if (!a.isDirectListen) return false; }
+      else if (filter === 'discover') { if (a.isDirectListen || pct < 25) return false; }
+      else if (filter === 'low')      { if (a.isDirectListen || pct >= 25) return false; }
+      else if (filter === 'friday')   { if (a.day !== 'friday') return false; }
+      else if (filter === 'saturday') { if (a.day !== 'saturday') return false; }
+      if (query) return a.name.toLowerCase().includes(query);
       return true;
     });
     this.renderCards(filtered);
