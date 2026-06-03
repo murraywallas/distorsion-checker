@@ -376,6 +376,36 @@ html, body {
 .filter-btn--schedule:hover,
 .filter-btn--schedule.active { background: #0ea5e9; border-color: #0ea5e9; color: #fff; font-weight: 700; }
 
+/* ── Festival live banner ───────────────────────────── */
+#festival-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 32px 0;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 10px 18px;
+  background: rgba(255, 60, 60, .08);
+  border: 1px solid rgba(255, 60, 60, .3);
+  border-radius: 50px;
+  font-size: 0.85rem;
+  color: var(--text);
+  width: calc(100% - 64px);
+}
+.fest-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ff3c3c;
+  flex-shrink: 0;
+  animation: pulse-live 1.4s ease-in-out infinite;
+}
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: .4; transform: scale(.7); }
+}
+
 /* ── Schedule badge (inside card body) ──────────────── */
 .badge-schedule {
   display: flex;
@@ -389,6 +419,26 @@ html, body {
 }
 .sched-sep  { color: var(--muted); font-weight: 400; }
 .sched-stage { color: var(--muted); font-weight: 500; }
+/* Time-status chips */
+.ts-chip {
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.ts-live  {
+  background: rgba(255,60,60,.18);
+  color: #ff5555;
+  border: 1px solid rgba(255,60,60,.4);
+  animation: pulse-live 1.4s ease-in-out infinite;
+}
+.ts-soon  { background: rgba(255,230,0,.12);  color: var(--accent);  border: 1px solid rgba(255,230,0,.35); }
+.ts-later { background: rgba(107,107,128,.12); color: var(--muted);   border: 1px solid var(--border); }
+.ts-done  { background: transparent;           color: var(--muted);   border: 1px solid var(--border); opacity: .6; }
+
 .sched-note {
   display: inline-block;
   background: rgba(14,165,233,.15);
@@ -692,6 +742,9 @@ html, body {
   .results-intro { padding: 24px 16px 0; }
   .results-intro h2 { font-size: 1.5rem; }
   #genre-summary { font-size: 0.85rem; }
+
+  /* Banner festival */
+  #festival-banner { margin: 12px 16px 0; width: calc(100% - 32px); font-size: 0.78rem; }
 
   /* Buscador */
   .search-wrap { padding: 16px 16px 0; }

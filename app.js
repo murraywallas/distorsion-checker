@@ -113,6 +113,63 @@ function scheduleTimeToSort(time) {
   return (h < 7 ? h + 24 : h) * 60 + (m || 0);
 }
 
+// ── Helpers de tiempo real (festival-aware) ───────────────────────────
+
+// Devuelve el Date exacto en que empieza un set
+function getActDateTime(act, day) {
+  const [h, m] = act.time.split(':').map(Number);
+  // Base: día del festival (meses 0-indexados: 5 = junio)
+  const base = day === 'friday' ? new Date(2026, 5, 5) : new Date(2026, 5, 6);
+  if (h < 7) base.setDate(base.getDate() + 1); // 00:00-06:59 son madrugada
+  base.setHours(h, m, 0, 0);
+  return base;
+}
+
+// Devuelve estado temporal de un artista respecto a ahora
+// { status: 'live'|'soon'|'later'|'done', min: minutos }
+function getTimeStatus(artist) {
+  if (!artist.schedule || !artist.day) return null;
+  const actTime = getActDateTime(artist.schedule, artist.day);
+  const diffMin = (actTime - Date.now()) / 60000; // + = futuro, - = pasado
+  const SET_DURATION = 90; // duración estimada del set en minutos
+  if (diffMin > -SET_DURATION && diffMin <= 0) return { status: 'live',  min: Math.round(-diffMin) };
+  if (diffMin > 0 && diffMin <= 120)           return { status: 'soon',  min: Math.round(diffMin) };
+  if (diffMin > 120)                           return { status: 'later', min: Math.round(diffMin) };
+  return                                              { status: 'done',  min: Math.round(-diffMin) };
+}
+
+// Clave numérica de ordenación: live < soon < later < done < sin horario
+function timeStatusSortKey(ts) {
+  if (!ts) return 9999;
+  if (ts.status === 'live')  return ts.min;          // 0–89
+  if (ts.status === 'soon')  return 100 + ts.min;    // 100–219
+  if (ts.status === 'later') return 300 + ts.min;    // 300+
+  if (ts.status === 'done')  return 5000 + ts.min;   // más reciente primero
+  return 9999;
+}
+
+// True durante el período del festival (Jun 5 18:00 → Jun 7 07:00)
+function isFestivalActive() {
+  const now = Date.now();
+  return now >= new Date(2026, 5, 5, 18, 0).getTime()
+      && now <= new Date(2026, 5, 7,  7, 0).getTime();
+}
+
+// True desde el día anterior hasta el día después (para mostrar countdowns)
+function isFestivalNearby() {
+  const now = Date.now();
+  return now >= new Date(2026, 5, 4, 12, 0).getTime()
+      && now <= new Date(2026, 5, 7, 12, 0).getTime();
+}
+
+// Formatea minutos como "2h 15min" o "45min"
+function fmtMin(min) {
+  const h = Math.floor(min / 60), m = min % 60;
+  if (h > 0 && m > 0) return `${h}h ${m}min`;
+  if (h > 0)           return `${h}h`;
+  return `${m}min`;
+}
+
 // ── Imágenes locales (descargadas de cphdistortion.dk) ───────────────
 const LINEUP_IMAGES = {
   "Anetha":                    "./images/anetha.jpg",
@@ -891,6 +948,23 @@ class App {
     if (this.topGenreNames.length)
       document.getElementById('genre-summary').textContent =
         `Tus géneros dominantes: ${this.topGenreNames.map(g => `"${g}"`).join(', ')}.`;
+
+    // Si el festival está activo, ordenar por horario en tiempo real
+    if (isFestivalActive()) {
+      rankings = [...rankings].sort((a, b) => {
+        const ka = timeStatusSortKey(getTimeStatus(a));
+        const kb = timeStatusSortKey(getTimeStatus(b));
+        if (ka !== kb) return ka - kb;
+        if (a.isDirectListen !== b.isDirectListen) return a.isDirectListen ? -1 : 1;
+        if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
+        return b.name.localeCompare(a.name, 'es', { sensitivity: 'base' });
+      });
+      // Activar botón "Por horario" y mostrar banner
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('[data-filter="schedule"]')?.classList.add('active');
+      document.getElementById('festival-banner')?.classList.remove('hidden');
+    }
+
     this.allRankings = rankings;
     this.renderCards(rankings);
     this.showPage('results');
@@ -925,15 +999,29 @@ class App {
     const dayLabel = artist.day === 'friday' ? 'Vie 5/6' : artist.day === 'saturday' ? 'Sáb 6/6' : null;
     const dayBadge = dayLabel ? `<div class="badge-day badge-day--${artist.day}">${dayLabel}</div>` : '';
 
-    // Schedule badge
-    const schedHtml = artist.schedule
-      ? `<div class="badge-schedule">
-           <span class="sched-time">${esc(artist.schedule.time)}</span>
-           <span class="sched-sep">·</span>
-           <span class="sched-stage">${esc(artist.schedule.stage)}</span>
-           ${artist.schedule.note ? `<span class="sched-note">${esc(artist.schedule.note)}</span>` : ''}
-         </div>`
-      : '';
+    // Schedule badge (con estado en tiempo real si estamos cerca del festival)
+    let schedHtml = '';
+    if (artist.schedule) {
+      const ts = isFestivalNearby() ? getTimeStatus(artist) : null;
+      let tsChip = '';
+      if (ts) {
+        if (ts.status === 'live')
+          tsChip = `<span class="ts-chip ts-live">● AHORA</span>`;
+        else if (ts.status === 'soon')
+          tsChip = `<span class="ts-chip ts-soon">en ${fmtMin(ts.min)}</span>`;
+        else if (ts.status === 'later')
+          tsChip = `<span class="ts-chip ts-later">en ${fmtMin(ts.min)}</span>`;
+        else if (ts.status === 'done')
+          tsChip = `<span class="ts-chip ts-done">hace ${fmtMin(ts.min)}</span>`;
+      }
+      schedHtml = `<div class="badge-schedule">
+        <span class="sched-time">${esc(artist.schedule.time)}</span>
+        <span class="sched-sep">·</span>
+        <span class="sched-stage">${esc(artist.schedule.stage)}</span>
+        ${artist.schedule.note ? `<span class="sched-note">${esc(artist.schedule.note)}</span>` : ''}
+        ${tsChip}
+      </div>`;
+    }
 
     // Style tags (top of card body)
     const styleTagsHtml = artist.styleTags.length
@@ -1038,9 +1126,20 @@ class App {
     // Ordenar por hora si el filtro es "schedule"
     if (filter === 'schedule') {
       filtered = [...filtered].sort((a, b) => {
-        const ta = a.schedule ? scheduleTimeToSort(a.schedule.time) : Infinity;
-        const tb = b.schedule ? scheduleTimeToSort(b.schedule.time) : Infinity;
-        return ta - tb;
+        if (isFestivalNearby()) {
+          // Tiempo real: live → soon → later → done → sin horario
+          const ka = timeStatusSortKey(getTimeStatus(a));
+          const kb = timeStatusSortKey(getTimeStatus(b));
+          if (ka !== kb) return ka - kb;
+        } else {
+          // Fuera del festival: orden cronológico simple
+          const ta = a.schedule ? scheduleTimeToSort(a.schedule.time) : Infinity;
+          const tb = b.schedule ? scheduleTimeToSort(b.schedule.time) : Infinity;
+          if (ta !== tb) return ta - tb;
+        }
+        // Desempate por afinidad
+        if (a.isDirectListen !== b.isDirectListen) return a.isDirectListen ? -1 : 1;
+        return b.finalScore - a.finalScore;
       });
     }
     this.renderCards(filtered);
