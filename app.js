@@ -1088,8 +1088,7 @@ class App {
     card.innerHTML = `
       <div class="card-rank">#${rank}</div>
       ${badge}
-      ${dayBadge}
-      <div class="card-img-wrap">${imgHtml}</div>
+      <div class="card-img-wrap">${imgHtml}${dayBadge}</div>
       <div class="card-body">
         <div><div class="card-name">${esc(artist.name)}</div>${nameNote}</div>
         ${schedHtml}
