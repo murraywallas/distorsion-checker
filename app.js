@@ -796,25 +796,29 @@ class App {
   //
   //  Componentes (suman sobre base 0-100):
   //  ┌──────────────────────────────────────────────────────────────────┐
-  //  │ YA LO ESCUCHAS                                                   │
-  //  │   Base fija            +50 pts  (el hecho de escucharlo)        │
+  //  │ YA LO ESCUCHAS (top artists)                                     │
+  //  │   Base fija            +50 pts                                   │
   //  │   En tu biblioteca     +15 pts  (canciones guardadas/top tracks) │
-  //  │   Coincidencia géneros  0-35 pts  (genreScore × 0.35)          │
-  //  │   Géneros del historial +10 pts por match (máx. +30 pts)       │
+  //  │   Coincidencia géneros  0-35 pts  (genreScore × 0.35)           │
   //  │   Máximo: 100 %  —  Mínimo: 50 %                                │
   //  ├──────────────────────────────────────────────────────────────────┤
-  //  │ NO LO ESCUCHAS                                                   │
+  //  │ EN TU BIBLIOTECA pero no top artist                              │
+  //  │   En tu biblioteca     +20 pts  (tienes canciones guardadas)     │
   //  │   Artista relacionado   +30 pts  (alguien similar que sí oyes)  │
-  //  │   Coincidencia géneros  0-35 pts  (genreScore × 0.35)          │
-  //  │   Géneros del historial +10 pts por match (máx. +30 pts)       │
-  //  │   Máximo: 95 %   —  Mínimo: 0 %                                 │
+  //  │   Coincidencia géneros  0-70 pts  (genreScore × 0.70)           │
+  //  │   Máximo: 100 %  —  Mínimo: 20 %                                │
+  //  ├──────────────────────────────────────────────────────────────────┤
+  //  │ NO LO ESCUCHAS                                                   │
+  //  │   Artista relacionado   +30 pts                                  │
+  //  │   Coincidencia géneros  0-70 pts  (genreScore × 0.70)           │
+  //  │   Máximo: 100 %  —  Mínimo: 0 %                                 │
   //  └──────────────────────────────────────────────────────────────────┘
   computeFinalScore(artist) {
     const g = artist.genreScore;
 
     const artistTagSet = this.genresToTagSet(artist.allGenres);
 
-    // Saved-history matches (chip display only — already baked into genreScore)
+    // Saved-history matches (chip display only)
     const savedTagHits = [...artistTagSet].filter(t => this.savedStyleTagSet?.has(t));
     artist.savedGenreMatches = savedTagHits.length;
     artist.savedGenreBonus   = 0;
@@ -826,11 +830,16 @@ class App {
 
     let score;
     if (artist.isDirectListen) {
+      // Top artist: base fija + bonus biblioteca + géneros
       const libBonus = artist.hasLikedSongs ? 0.15 : 0;
       score = 0.50 + libBonus + (g * 0.35);
+      artist.libBonusPct = artist.hasLikedSongs ? 15 : 0;
     } else {
+      // No es top artist: género pesa más; biblioteca da base mínima
       const relBonus = artist.hasRelatedArtist ? 0.30 : 0;
-      score = (g * 0.70) + relBonus;
+      const libBonus = artist.hasLikedSongs    ? 0.20 : 0;
+      score = libBonus + (g * 0.70) + relBonus;
+      artist.libBonusPct = artist.hasLikedSongs ? 20 : 0;
     }
 
     score += artist.likedSongMatchedTags.length * 0.15;
@@ -1036,7 +1045,7 @@ class App {
       // Chips explaining what contributed to the score
       const chips = [];
       if (artist.isDirectListen)    chips.push(`<span class="chip chip-listen">🎵 Lo escuchas · +50%</span>`);
-      if (artist.hasLikedSongs)     chips.push(`<span class="chip chip-saved">❤️ En tu biblioteca · +15%</span>`);
+      if (artist.hasLikedSongs)     chips.push(`<span class="chip chip-saved">❤️ En tu biblioteca · +${artist.libBonusPct ?? 15}%</span>`);
       if (artist.hasRelatedArtist)  chips.push(`<span class="chip chip-related">🔗 Via ${esc(artist.relatedArtistName)} · +30%</span>`);
       if (artist.savedGenreMatches > 0)
         chips.push(`<span class="chip chip-history">📂 ${artist.savedGenreMatches} género${artist.savedGenreMatches > 1 ? 's' : ''} en tu historial · +${Math.round(artist.savedGenreBonus * 100)}%</span>`);
